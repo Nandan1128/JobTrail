@@ -20,15 +20,22 @@ JobTrail is a privacy-first Chrome Extension (Manifest V3) that automatically de
 
 ## 📦 How to Install & Use JobTrail
 
-### 1. Installation (Developer Mode)
-1. Clone or download this repository to your computer:
-   ```bash
-   git clone https://github.com/Nandan1128/JobTrail.git
-   ```
-2. Open Google Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer mode** (toggle in the top-right corner).
-4. Click **Load unpacked** (button in the top-left corner).
-5. Select the `JobTrail` project folder.
+### 1. Installation
+
+#### 🌟 Option A: Download Pre-built Zip (Recommended)
+1. Go to the [**JobTrail Releases Page**](https://github.com/Nandan1128/JobTrail/releases).
+2. Download the latest `JobTrail_v1.0.0.zip` package under **Assets**.
+3. Unzip/Extract the `.zip` file on your computer.
+4. Open Google Chrome and navigate to `chrome://extensions/`.
+5. Enable **Developer mode** (toggle switch in the top-right corner).
+6. Click **Load unpacked** (button in the top-left corner).
+7. Select the unzipped folder.
+
+#### 🛠️ Option B: Clone Repository (For Developers)
+```bash
+git clone https://github.com/Nandan1128/JobTrail.git
+```
+Then open `chrome://extensions/`, enable Developer mode, click **Load unpacked**, and select the project folder.
 
 ---
 
