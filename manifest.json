@@ -1,0 +1,116 @@
+{
+  "manifest_version": 3,
+  "name": "JobTrail",
+  "version": "1.0.0",
+  "description": "Track your job applications effortlessly. Auto-detect job listings, save with one click, manage your pipeline, and export to Excel.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.naukri.com/*"
+      ],
+      "js": [
+        "content/sites/naukri.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.linkedin.com/*"
+      ],
+      "js": [
+        "content/sites/linkedin.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.indeed.com/*"
+      ],
+      "js": [
+        "content/sites/indeed.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.glassdoor.com/*",
+        "*://*.glassdoor.co.uk/*",
+        "*://*.glassdoor.co.in/*",
+        "*://*.glassdoor.ca/*",
+        "*://*.glassdoor.com.au/*"
+      ],
+      "js": [
+        "content/sites/glassdoor.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://boards.greenhouse.io/*",
+        "*://*.greenhouse.io/embed/job_app*"
+      ],
+      "js": [
+        "content/sites/greenhouse.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://jobs.lever.co/*"
+      ],
+      "js": [
+        "content/sites/lever.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.myworkdayjobs.com/*",
+        "*://*.wd1.myworkdayjobs.com/*",
+        "*://*.wd5.myworkdayjobs.com/*"
+      ],
+      "js": [
+        "content/sites/workday.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/sites/universal.js",
+        "content/detector.js",
+        "content/overlay.js",
+        "content/apply-tracker.js"
+      ],
+      "css": ["content/overlay.css"],
+      "run_at": "document_end"
+    }
+  ]
+}

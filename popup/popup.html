@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobTrail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Header -->
+    <header class="header" id="header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon">
+            <span class="brand-icon-text">JT</span>
+          </div>
+          <div class="brand-info">
+            <h1 class="brand-name">JobTrail</h1>
+            <span class="brand-tagline">Track your applications</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="btn-open-sheet-header" title="Open Google Sheet" style="display: none; color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btn-sheets" title="Google Sheets Auto-Sync">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span class="sync-dot" id="sync-dot" style="display: none;"></span>
+          </button>
+          <button class="icon-btn" id="btn-add-job" title="Add job manually">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-export" title="Export to Excel">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat" id="stat-total">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat stat-applied" id="stat-applied">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Applied</span>
+        </div>
+        <div class="stat stat-interview" id="stat-interview">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Interviews</span>
+        </div>
+        <div class="stat stat-offer" id="stat-offer">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Offers</span>
+        </div>
+      </div>
+
+      <!-- Search & Filter -->
+      <div class="search-filter">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" id="search-input" placeholder="Search jobs, companies...">
+        </div>
+        <div class="filter-chips" id="filter-chips">
+          <button class="chip chip-active" data-filter="all">All</button>
+          <button class="chip" data-filter="saved">Saved</button>
+          <button class="chip" data-filter="applied">Applied</button>
+          <button class="chip" data-filter="phone_screen">Screen</button>
+          <button class="chip" data-filter="interview">Interview</button>
+          <button class="chip" data-filter="offer">Offer</button>
+          <button class="chip" data-filter="rejected">Rejected</button>
+          <button class="chip" data-filter="withdrawn">Withdrawn</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Job List -->
+    <main class="job-list" id="job-list">
+      <!-- Jobs will be rendered here by JS -->
+    </main>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="empty-state" style="display: none;">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No jobs tracked yet</h3>
+      <p class="empty-text">Visit a job listing on LinkedIn, Indeed, or other supported sites — or add one manually</p>
+      <button class="btn btn-primary" id="btn-empty-add">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Job Manually
+      </button>
+    </div>
+
+    <!-- Add Job Modal -->
+    <div class="modal-backdrop" id="add-modal" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Add Job</h2>
+          <button class="icon-btn modal-close" id="modal-close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <form class="modal-form" id="add-form">
+          <div class="form-group">
+            <label class="form-label" for="input-title">Job Title *</label>
+            <input type="text" class="form-input" id="input-title" placeholder="e.g. Software Engineer" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="input-company">Company *</label>
+            <input type="text" class="form-input" id="input-company" placeholder="e.g. Google" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-location">Location</label>
+              <input type="text" class="form-input" id="input-location" placeholder="e.g. Remote">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-salary">Salary</label>
+              <input type="text" class="form-input" id="input-salary" placeholder="e.g. $120k">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="input-url">URL</label>
+            <input type="url" class="form-input" id="input-url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="input-notes">Notes</label>
+            <textarea class="form-input form-textarea" id="input-notes" placeholder="Any notes about this role..." rows="2"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-submit-job">
+            Save Job
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Google Sheets Sync Modal -->
+    <div class="modal-backdrop" id="sheets-modal" style="display: none;">
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h2 class="modal-title">Google Sheets Sync</h2>
+            <span class="modal-subtitle">Live real-time automatic synchronization</span>
+          </div>
+          <button class="icon-btn modal-close" id="sheets-modal-close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="sheets-content">
+          <!-- Toggle row -->
+          <div class="sheets-toggle-row">
+            <div class="sheets-toggle-info">
+              <span class="sheets-toggle-label">Auto-Sync New Jobs</span>
+              <span class="sheets-toggle-sub">Instantly syncs saves and status updates</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-sheets-sync">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Webhook input -->
+          <div class="form-group">
+            <label class="form-label" for="input-webhook-url">Google Apps Script Web App URL *</label>
+            <div class="input-with-action">
+              <input type="url" class="form-input" id="input-webhook-url" placeholder="https://script.google.com/macros/s/.../exec">
+              <button class="btn btn-secondary btn-sm" id="btn-test-sheets">Test</button>
+            </div>
+            <span class="input-hint" id="sheets-status-hint">Enter your deployed Google Apps Script URL</span>
+          </div>
+
+          <!-- Sheet Direct Link input -->
+          <div class="form-group">
+            <label class="form-label" for="input-sheet-url">Google Sheet URL (for 1-click open)</label>
+            <input type="url" class="form-input" id="input-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/...">
+            <span class="input-hint">Paste your Google Sheet link to open it directly from JobTrail</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="sheets-actions">
+            <button class="btn btn-primary" id="btn-save-sheets-config">Save Settings</button>
+            <button class="btn btn-secondary" id="btn-open-google-sheet" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open Sheet
+            </button>
+            <button class="btn btn-secondary" id="btn-sync-all-sheets">Sync Past Jobs</button>
+          </div>
+
+          <!-- Quick Setup Guide Accordion -->
+          <details class="sheets-guide">
+            <summary class="sheets-guide-summary">
+              <span>📖 30-Second Setup Guide (Click to expand)</span>
+            </summary>
+            <div class="sheets-guide-body">
+              <ol class="sheets-steps">
+                <li>Create a Google Sheet at <a href="https://sheets.new" target="_blank" class="text-link">sheets.new</a></li>
+                <li>Go to <b>Extensions > Apps Script</b></li>
+                <li>Delete existing code & paste the script below:</li>
+              </ol>
+              <div class="code-box-wrapper">
+                <button class="btn-copy-code" id="btn-copy-script">Copy Script Code</button>
+                <textarea readonly class="code-preview" id="sheets-code-preview"></textarea>
+              </div>
+              <ol class="sheets-steps" start="4">
+                <li>Click <b>Deploy > New deployment</b></li>
+                <li>Select <b>Web app</b>, set <i>Execute as:</i> <b>Me</b>, and <i>Who has access:</i> <b>Anyone</b></li>
+                <li>Click <b>Deploy</b>, copy the Web app URL, and paste it above!</li>
+              </ol>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="modal-backdrop" id="confirm-modal" style="display: none;">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2 class="modal-title" id="confirm-title">Confirm</h2>
+        </div>
+        <p class="confirm-text" id="confirm-text">Are you sure?</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+          <button class="btn btn-danger" id="confirm-ok">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer" id="footer">
+      <button class="footer-btn" id="btn-clear-all" title="Clear all tracked jobs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Clear All
+      </button>
+      <span class="footer-info" id="footer-info">0 jobs tracked</span>
+    </footer>
+  </div>
+
+  <script src="../lib/xlsx.full.min.js"></script>
+  <script src="../lib/exporter.js"></script>
+  <script src="../lib/google-sheets-script.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+/*
+  JobTrail — Overlay CSS
+  This file is loaded by the manifest but styles are scoped
+  via Shadow DOM in overlay.js. This file exists as a minimal
+  reset to ensure the shadow host doesn't interfere with page layout.
+*/
+
+#jobtrail-overlay-host {
+  all: initial !important;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
