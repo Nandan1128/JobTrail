@@ -197,7 +197,10 @@
 
     _clean(str) {
       if (!str) return '';
-      return str.replace(/\s+/g, ' ').trim();
+      return str
+        .replace(/\b\d+\s*[-–]\s*\d+\s*(?:yrs?|years?)\b/gi, '') // Strip experience tags like "1-3 Yrs"
+        .replace(/\s+/g, ' ')
+        .trim();
     },
 
     _cleanDescription(html) {
@@ -206,18 +209,22 @@
     },
 
     _cleanUrl(url) {
-      if (!url) return window.location.href;
+      if (!url) url = window.location.href;
       try {
         const u = new URL(url);
+        // Extract 10-13 digit Naukri Job ID from path or query params
+        const match = u.pathname.match(/job-listings-.*?-(\d{10,13})(?:[?#]|$)/i) ||
+                      u.pathname.match(/-(\d{10,13})(?:[?#]|$)/) ||
+                      u.pathname.match(/(\d{10,13})/) ||
+                      u.search.match(/[?&]jobId=(\d{10,13})/i);
+        if (match) {
+          return `https://www.naukri.com/job-listings-${match[1]}`;
+        }
         u.hash = '';
-        u.searchParams.delete('utm_source');
-        u.searchParams.delete('utm_medium');
-        u.searchParams.delete('utm_campaign');
-        u.searchParams.delete('src');
-        u.searchParams.delete('sid');
+        u.search = '';
         return u.href.replace(/\/$/, '');
       } catch {
-        return url.split('?')[0].split('#')[0];
+        return url.split('?')[0].split('#')[0].replace(/\/$/, '');
       }
     }
   };

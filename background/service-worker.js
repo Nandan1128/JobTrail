@@ -100,21 +100,34 @@ async function syncToGoogleSheets(payload, retryAttempt = 0) {
  * Normalize URL for deduplication
  */
 function normalizeUrl(url) {
+  if (!url) return '';
   try {
     const u = new URL(url);
     u.hash = '';
-    u.searchParams.delete('utm_source');
-    u.searchParams.delete('utm_medium');
-    u.searchParams.delete('utm_campaign');
-    u.searchParams.delete('refId');
-    u.searchParams.delete('trackingId');
-    u.searchParams.delete('trk');
-    u.searchParams.delete('currentJobId');
-    u.searchParams.delete('position');
-    u.searchParams.delete('feedId');
+
+    // Handle Naukri URL normalization to canonical job-listings-ID
+    if (u.hostname.includes('naukri.com')) {
+      const naukriMatch = u.pathname.match(/job-listings-.*?-(\d{10,13})(?:[?#]|$)/i) ||
+                          u.pathname.match(/-(\d{10,13})(?:[?#]|$)/) ||
+                          u.pathname.match(/(\d{10,13})/) ||
+                          u.search.match(/[?&]jobId=(\d{10,13})/i);
+      if (naukriMatch) {
+        return `https://www.naukri.com/job-listings-${naukriMatch[1]}`;
+      }
+      u.search = '';
+      return u.href.replace(/\/$/, '');
+    }
+
+    const dropParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'refId', 'trackingId', 'trk', 'currentJobId', 'position', 'feedId',
+      'src', 'sid', 'xp', 'px', 'qd', 'bb', 'index', 'f', 'type'
+    ];
+    dropParams.forEach(p => u.searchParams.delete(p));
+
     return u.href.replace(/\/$/, '');
   } catch {
-    return url || '';
+    return url ? url.split('?')[0].split('#')[0].replace(/\/$/, '') : '';
   }
 }
 
@@ -131,6 +144,14 @@ function extractDisplayJobId(dataOrUrl) {
   const url = typeof dataOrUrl === 'string' ? dataOrUrl : (dataOrUrl.url || '');
   if (url) {
     try {
+      // Naukri (10-13 digit Job ID)
+      if (url.includes('naukri.com')) {
+        const naukriMatch = url.match(/job-listings-.*?-(\d{10,13})(?:[?#]|$)/i) ||
+                            url.match(/-(\d{10,13})(?:[?#]|$)/) ||
+                            url.match(/(\d{10,13})/);
+        if (naukriMatch) return naukriMatch[1];
+      }
+
       // Indeed (jk=7a8b9c123456 or vjk=...)
       const indeedMatch = url.match(/[?&](?:jk|vjk)=([a-f0-9]{12,})/i);
       if (indeedMatch) return indeedMatch[1];
@@ -157,6 +178,16 @@ function extractDisplayJobId(dataOrUrl) {
   return 'JT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+function cleanStringForMatch(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/\b\d+\s*[-–]\s*\d+\s*(?:yrs?|years?)\b/gi, '') // Remove experience ranges like "2-5 Yrs"
+    .replace(/\b(pvt|ltd|inc|llc|corp|private|limited|technologies|solutions|services)\b/gi, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .trim();
+}
+
 /**
  * Find existing job by normalized URL, Job ID in URL, or Title + Company
  */
@@ -165,27 +196,31 @@ async function findExistingJob(dataOrUrl) {
   if (!jobs || jobs.length === 0 || !dataOrUrl) return null;
 
   const targetUrl = typeof dataOrUrl === 'string' ? dataOrUrl : (dataOrUrl.url || '');
-  const targetTitle = typeof dataOrUrl === 'object' ? (dataOrUrl.title || '').trim().toLowerCase() : '';
-  const targetCompany = typeof dataOrUrl === 'object' ? (dataOrUrl.company || '').trim().toLowerCase() : '';
+  const targetTitle = typeof dataOrUrl === 'object' ? (dataOrUrl.title || '') : '';
+  const targetCompany = typeof dataOrUrl === 'object' ? (dataOrUrl.company || '') : '';
 
   const normalizedTarget = normalizeUrl(targetUrl);
+  const targetJobId = extractDisplayJobId(dataOrUrl);
 
-  // Extract numeric or alphanumeric Job ID (e.g. 4449047029 on LinkedIn, 1423696033 on Capgemini, jk= on Indeed)
-  const targetJobIdMatch = targetUrl.match(/(?:currentJobId=|job\/|view\/|jk=|\/jobs\/)(\d{6,}|[a-f0-9]{16})/i) || targetUrl.match(/(\d{6,})/);
-  const targetJobId = targetJobIdMatch ? targetJobIdMatch[1] : null;
+  const cleanTargetTitle = cleanStringForMatch(targetTitle);
+  const cleanTargetCompany = cleanStringForMatch(targetCompany);
 
   return jobs.find(j => {
-    // 1. Direct URL or normalized URL match
+    // 1. Direct or normalized URL match
     if (j.url && normalizeUrl(j.url) === normalizedTarget) return true;
 
-    // 2. Job ID in URL match
-    if (targetJobId && j.url && j.url.includes(targetJobId)) return true;
+    // 2. Job ID match
+    if (targetJobId && targetJobId !== 'N/A' && !targetJobId.startsWith('JT-')) {
+      if (j.jobId === targetJobId) return true;
+      if (j.url && j.url.includes(targetJobId)) return true;
+    }
 
-    // 3. Title + Company match (case insensitive)
-    if (targetTitle && targetCompany && j.title && j.company) {
-      const jTitle = j.title.trim().toLowerCase();
-      const jCompany = j.company.trim().toLowerCase();
-      if (jTitle === targetTitle && jCompany === targetCompany) return true;
+    // 3. Clean Title + Company match
+    if (cleanTargetTitle && cleanTargetCompany && j.title && j.company) {
+      if (cleanStringForMatch(j.title) === cleanTargetTitle &&
+          cleanStringForMatch(j.company) === cleanTargetCompany) {
+        return true;
+      }
     }
 
     return false;
@@ -340,76 +375,61 @@ async function handleMarkApplied(data) {
     if (!data) return { success: false, message: 'No job data provided' };
 
     const jobs = await getJobs();
-    const targetUrl = data.url || '';
-    const normalizedTarget = normalizeUrl(targetUrl);
+    const existingJob = await findExistingJob(data);
 
-    // Extract numeric or alphanumeric job ID from URL (e.g. LinkedIn 4449047029)
-    const targetJobIdMatch = targetUrl.match(/(\d{6,})/);
-    const targetJobId = targetJobIdMatch ? targetJobIdMatch[1] : null;
+    if (existingJob) {
+      const index = jobs.findIndex(j => j.id === existingJob.id);
+      if (index !== -1) {
+        const now = new Date().toISOString();
+        jobs[index].status = 'applied';
+        if (!jobs[index].dateApplied) {
+          jobs[index].dateApplied = now;
+        }
+        jobs[index].lastUpdated = now;
+        await setJobs(jobs);
 
-    let index = jobs.findIndex(j => {
-      if (j.url && normalizeUrl(j.url) === normalizedTarget) return true;
-      if (targetJobId && j.url && j.url.includes(targetJobId)) return true;
-      if (j.title && data.title && j.company && data.company &&
-          j.title.toLowerCase() === data.title.toLowerCase() &&
-          j.company.toLowerCase() === data.company.toLowerCase()) {
-        return true;
+        syncToGoogleSheets({
+          action: 'updateJob',
+          id: jobs[index].id,
+          job: jobs[index],
+          updates: { status: 'applied', dateApplied: jobs[index].dateApplied, lastUpdated: now }
+        });
+
+        console.log('[JobTrail] ✅ Existing job marked as applied:', jobs[index].title);
+        return { success: true, job: jobs[index], action: 'updated' };
       }
-      return false;
-    });
-
-    if (index !== -1) {
-      // Job exists -> update status to applied
-      const now = new Date().toISOString();
-      jobs[index].status = 'applied';
-      if (!jobs[index].dateApplied) {
-        jobs[index].dateApplied = now;
-      }
-      await setJobs(jobs);
-
-      // Live real-time sync update to Google Sheets
-      syncToGoogleSheets({
-        action: 'updateJob',
-        id: jobs[index].id,
-        job: jobs[index],
-        updates: { status: 'applied', dateApplied: jobs[index].dateApplied }
-      });
-
-      console.log('[JobTrail] ✅ Existing job marked as applied:', jobs[index].title);
-      return { success: true, job: jobs[index], action: 'updated' };
-    } else {
-      // New job -> save directly as applied
-      const now = new Date().toISOString();
-      const rawId = generateId();
-      const job = {
-        id: rawId,
-        jobId: extractDisplayJobId(data),
-        title: data.title || 'Untitled Position',
-        company: data.company || 'Unknown Company',
-        location: data.location || '',
-        salary: data.salary || '',
-        url: data.url || '',
-        source: data.source || 'manual',
-        status: 'applied',
-        dateSaved: now,
-        dateApplied: now,
-        lastUpdated: now,
-        notes: data.notes || '',
-        description: data.description || '',
-        employmentType: data.employmentType || '',
-        datePosted: data.datePosted || '',
-        workType: data.workType || ''
-      };
-
-      jobs.unshift(job);
-      await setJobs(jobs);
-
-      // Live real-time sync to Google Sheets
-      syncToGoogleSheets({ action: 'addJob', job });
-
-      console.log('[JobTrail] ✅ New job created & marked as applied:', job.title);
-      return { success: true, job, action: 'saved_new' };
     }
+
+    // New job -> save directly as applied
+    const now = new Date().toISOString();
+    const rawId = generateId();
+    const job = {
+      id: rawId,
+      jobId: extractDisplayJobId(data),
+      title: data.title || 'Untitled Position',
+      company: data.company || 'Unknown Company',
+      location: data.location || '',
+      salary: data.salary || '',
+      url: normalizeUrl(data.url || ''),
+      source: data.source || 'manual',
+      status: 'applied',
+      dateSaved: now,
+      dateApplied: now,
+      lastUpdated: now,
+      notes: data.notes || '',
+      description: data.description || '',
+      employmentType: data.employmentType || '',
+      datePosted: data.datePosted || '',
+      workType: data.workType || ''
+    };
+
+    jobs.unshift(job);
+    await setJobs(jobs);
+
+    syncToGoogleSheets({ action: 'addJob', job });
+
+    console.log('[JobTrail] ✅ New job created & marked as applied:', job.title);
+    return { success: true, job, action: 'saved_new' };
   } catch (err) {
     console.error('[JobTrail] Mark applied error:', err);
     return { success: false, message: err.message };
