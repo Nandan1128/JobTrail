@@ -62,12 +62,26 @@
     return null;
   }
 
+  let lastAppliedKey = '';
+  let lastAppliedTime = 0;
+
   /**
    * Save a job and mark it as "applied"
    */
   function saveAsApplied(jobData) {
     const data = jobData || getCurrentJobData() || currentJobDataForApply;
-    if (!data) return;
+    if (!data || !data.title) return;
+
+    // 5-second debounce guard to prevent double dispatch on rapid clicks/modals
+    const key = (data.url || '') + '|' + (data.title || '') + '|' + (data.company || '');
+    const now = Date.now();
+    if (key === lastAppliedKey && (now - lastAppliedTime) < 5000) {
+      console.log('[JobTrail] Duplicate apply event suppressed within 5s for:', data.title);
+      return;
+    }
+
+    lastAppliedKey = key;
+    lastAppliedTime = now;
 
     if (!chrome.runtime?.id) {
       console.warn('[JobTrail] Extension context invalidated in apply-tracker.');

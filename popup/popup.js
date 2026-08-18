@@ -161,13 +161,32 @@ function updateSpecificFields(sheet, rowIndex, updates) {
   if (updates.notes !== undefined) sheet.getRange(rowIndex, 15).setValue(updates.notes);
 }
 
-function findRowByJobId(sheet, idOrUrl) {
-  if (!idOrUrl) return -1;
+function findRowByJobId(sheet, target) {
+  if (!target) return -1;
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return -1;
+  const targetId = (typeof target === 'object' ? (target.jobId || target.id) : target) || '';
+  const targetUrl = typeof target === 'object' ? (target.url || '') : (String(target).startsWith('http') ? target : '');
+  const targetTitle = typeof target === 'object' ? (target.title || '').trim().toLowerCase() : '';
+  const targetCompany = typeof target === 'object' ? (target.company || '').trim().toLowerCase() : '';
+  const cleanTargetUrl = cleanUrlForSheet(targetUrl);
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === idOrUrl || data[i][13] === idOrUrl) return i + 1;
+    const rowId = String(data[i][0] || '');
+    const rowTitle = String(data[i][1] || '').trim().toLowerCase();
+    const rowCompany = String(data[i][2] || '').trim().toLowerCase();
+    const rowUrl = String(data[i][13] || data[i][9] || '');
+    if (targetId && rowId && rowId === targetId) return i + 1;
+    if (cleanTargetUrl && rowUrl && cleanUrlForSheet(rowUrl) === cleanTargetUrl) return i + 1;
+    if (targetTitle && targetCompany && rowTitle && rowCompany) {
+      if (rowTitle === targetTitle && rowCompany === targetCompany) return i + 1;
+    }
   }
   return -1;
+}
+
+function cleanUrlForSheet(url) {
+  if (!url) return '';
+  return String(url).split('?')[0].split('#')[0].replace(/\/$/, '').toLowerCase();
 }
 
 function formatStatus(status) {

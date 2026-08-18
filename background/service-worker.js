@@ -367,11 +367,31 @@ async function handleSyncAllToGoogleSheets() {
   }
 }
 
+let jobMutationChain = Promise.resolve();
+
+/**
+ * Serializes async job mutation operations to prevent race condition duplicates
+ */
+function runJobMutation(fn) {
+  return new Promise((resolve) => {
+    jobMutationChain = jobMutationChain.then(async () => {
+      try {
+        const res = await fn();
+        resolve(res);
+      } catch (err) {
+        resolve({ success: false, message: err.message });
+      }
+    }).catch(err => {
+      resolve({ success: false, message: err.message });
+    });
+  });
+}
+
 /**
  * Mark a job as applied (or create it directly as applied if not previously saved)
  */
 async function handleMarkApplied(data) {
-  try {
+  return runJobMutation(async () => {
     if (!data) return { success: false, message: 'No job data provided' };
 
     const jobs = await getJobs();
@@ -430,17 +450,14 @@ async function handleMarkApplied(data) {
 
     console.log('[JobTrail] ✅ New job created & marked as applied:', job.title);
     return { success: true, job, action: 'saved_new' };
-  } catch (err) {
-    console.error('[JobTrail] Mark applied error:', err);
-    return { success: false, message: err.message };
-  }
+  });
 }
 
 /**
  * Save a new job
  */
 async function handleSaveJob(data) {
-  try {
+  return runJobMutation(async () => {
     const existing = await findExistingJob(data);
     if (existing) {
       return { success: false, message: 'Job already saved', job: existing };
@@ -455,7 +472,7 @@ async function handleSaveJob(data) {
       company: data.company || 'Unknown Company',
       location: data.location || '',
       salary: data.salary || '',
-      url: data.url || '',
+      url: normalizeUrl(data.url || ''),
       source: data.source || 'manual',
       status: 'saved',
       dateSaved: now,
@@ -475,11 +492,9 @@ async function handleSaveJob(data) {
     // Live real-time sync to Google Sheets
     syncToGoogleSheets({ action: 'addJob', job });
 
-    return { success: true, job };
-  } catch (err) {
-    console.error('[JobTrail] Save error:', err);
-    return { success: false, message: err.message };
-  }
+    console.log('[JobTrail] ✅ New job saved:', job.title, '—', job.company);
+    return { success: true, job, action: 'saved_new' };
+  });
 }
 
 /**
